@@ -15,6 +15,8 @@
 		F743329620AA89C1004C6039 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = F743329520AA89C1004C6039 /* main.m */; };
 		F74332A020AA89C1004C6039 /* VTDecodeTests.m in Sources */ = {isa = PBXBuildFile; fileRef = F743329F20AA89C1004C6039 /* VTDecodeTests.m */; };
 		F74332AB20AA89C1004C6039 /* VTDecodeUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = F74332AA20AA89C1004C6039 /* VTDecodeUITests.m */; };
+		F755736C20DA3B8200E82E07 /* abc.h264 in Resources */ = {isa = PBXBuildFile; fileRef = F755736A20DA3B8200E82E07 /* abc.h264 */; };
+		F755736D20DA3B8200E82E07 /* qwe.h264 in Resources */ = {isa = PBXBuildFile; fileRef = F755736B20DA3B8200E82E07 /* qwe.h264 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -51,6 +53,8 @@
 		F74332A620AA89C1004C6039 /* VTDecodeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VTDecodeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F74332AA20AA89C1004C6039 /* VTDecodeUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VTDecodeUITests.m; sourceTree = "<group>"; };
 		F74332AC20AA89C1004C6039 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F755736A20DA3B8200E82E07 /* abc.h264 */ = {isa = PBXFileReference; lastKnownFileType = file; path = abc.h264; sourceTree = "<group>"; };
+		F755736B20DA3B8200E82E07 /* qwe.h264 */ = {isa = PBXFileReference; lastKnownFileType = file; path = qwe.h264; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +105,8 @@
 		F743328520AA89BF004C6039 /* VTDecode */ = {
 			isa = PBXGroup;
 			children = (
+				F755736A20DA3B8200E82E07 /* abc.h264 */,
+				F755736B20DA3B8200E82E07 /* qwe.h264 */,
 				F743328620AA89BF004C6039 /* AppDelegate.h */,
 				F743328720AA89BF004C6039 /* AppDelegate.m */,
 				F743328920AA89BF004C6039 /* ViewController.h */,
@@ -235,7 +241,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F755736C20DA3B8200E82E07 /* abc.h264 in Resources */,
 				F743329320AA89C1004C6039 /* LaunchScreen.storyboard in Resources */,
+				F755736D20DA3B8200E82E07 /* qwe.h264 in Resources */,
 				F743329020AA89C1004C6039 /* Assets.xcassets in Resources */,
 				F743328E20AA89BF004C6039 /* Main.storyboard in Resources */,
 			);
