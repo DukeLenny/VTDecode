@@ -10,10 +10,15 @@
 
 #import <VideoToolbox/VideoToolbox.h>
 
+#import <AVKit/AVKit.h>
+
 @interface ViewController ()
 
 @property (nonatomic, weak) UIButton *button;
 @property (nonatomic, weak) CADisplayLink *displayLink;
+
+@property (nonatomic, strong) AVSampleBufferDisplayLayer *sampleBufferDisplayLayer;
+@property (nonatomic, assign) CVPixelBufferRef previousPixelBuffer;
 
 @end
 
@@ -77,6 +82,8 @@ const uint8_t StartCode[4] = {0, 0, 0, 1};
     [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
     displayLink.paused = YES;
     self.displayLink = displayLink;
+    
+    [self initSampleBufferDisplayLayer];
 }
 
 - (void)buttonClicked:(UIButton *)button
@@ -140,7 +147,9 @@ const uint8_t StartCode[4] = {0, 0, 0, 1};
             {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     // display pixelBuffer
-                    CVPixelBufferRelease(pixelBuffer);
+                    [self dispatchPixelBuffer:pixelBuffer];
+//                    CVPixelBufferRelease(pixelBuffer);
+                    CFRelease(pixelBuffer);
                 });
             }
         });
@@ -307,6 +316,88 @@ void didDecompress(void *decompressionOutputRefCon, void *sourceFrameRefCon, OSS
         }
     }
     return outputPixelBuffer;
+}
+
+#pragma mark - 使用AVSampleBufferDisplayLayer进行视频渲染
+// AVSampleBufferDisplayLayer既可以用来渲染解码后的视频图片，也可以直接把未解码的视频帧送给它，完成先解码再渲染出去的步骤。
+// 首先，建立AVSampleBufferDisplayLayer并把它添加成为当前view的子layer
+- (void)initSampleBufferDisplayLayer
+{
+    self.sampleBufferDisplayLayer = [[AVSampleBufferDisplayLayer alloc] init];
+    self.sampleBufferDisplayLayer.frame = CGRectMake(0, CGRectGetMaxY(self.button.frame) + 8.0, self.view.bounds.size.width, self.view.bounds.size.height - (CGRectGetMaxY(self.button.frame) + 8.0));
+    self.sampleBufferDisplayLayer.position = CGPointMake(CGRectGetMidX(self.view.bounds), CGRectGetMidY(self.view.bounds));
+    self.sampleBufferDisplayLayer.videoGravity = AVLayerVideoGravityResizeAspect;
+    self.sampleBufferDisplayLayer.opaque = YES;
+    [self.view.layer addSublayer:self.sampleBufferDisplayLayer];
+}
+
+// 其次，把得到的pixelbuffer包装成CMSampleBuffer并设置时间信息
+- (void)dispatchPixelBuffer:(CVPixelBufferRef)pixelBuffer
+{
+    if (!pixelBuffer)
+    {
+        return;
+    }
+    
+    @synchronized(self)
+    {
+//        if (self.previousPixelBuffer)
+//        {
+//            CFRelease(self.previousPixelBuffer);
+//            self.previousPixelBuffer = NULL;
+//        }
+        self.previousPixelBuffer = (CVPixelBufferRef)CFRetain(pixelBuffer);
+    }
+    
+    // 不设置具体时间信息
+    CMSampleTimingInfo timingInfo = {kCMTimeInvalid, kCMTimeInvalid, kCMTimeInvalid};
+    
+    // 获取视频信息
+    CMVideoFormatDescriptionRef videoFormatDescription = NULL;
+    OSStatus status = CMVideoFormatDescriptionCreateForImageBuffer(NULL, pixelBuffer, &videoFormatDescription);
+    NSParameterAssert(status == 0 && videoFormatDescription != NULL);
+    
+    CMSampleBufferRef sampleBuffer = NULL;
+    status = CMSampleBufferCreateForImageBuffer(kCFAllocatorDefault, pixelBuffer, true, NULL, NULL, videoFormatDescription, &timingInfo, &sampleBuffer);
+    NSParameterAssert(status == 0 && sampleBuffer != NULL);
+    
+    CFRelease(pixelBuffer);
+    CFRelease(videoFormatDescription);
+    
+    CFArrayRef attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, YES);
+    CFMutableDictionaryRef dic = (CFMutableDictionaryRef)CFArrayGetValueAtIndex(attachments, 0);
+    CFDictionarySetValue(dic, kCMSampleAttachmentKey_DisplayImmediately, kCFBooleanTrue);
+    
+    [self enqueueSampleBuffer:sampleBuffer toLayer:self.sampleBufferDisplayLayer];
+    
+    CFRelease(sampleBuffer);
+    
+    // 这里不设置具体时间信息且设置kCMSampleAttachmentKey_DisplayImmediately为true，是因为这里只需要渲染不需要解码，所以不必根据dts设置解码时间、根据pts设置渲染时间。
+}
+
+// 最后，数据送给AVSampleBufferDisplayLayer渲染就可以了。
+- (void)enqueueSampleBuffer:(CMSampleBufferRef)sampleBuffer toLayer:(AVSampleBufferDisplayLayer *)layer
+{
+    if (sampleBuffer)
+    {
+        CFRetain(sampleBuffer);
+        [layer enqueueSampleBuffer:sampleBuffer];
+        CFRelease(sampleBuffer);
+        
+        if (layer.status == AVQueuedSampleBufferRenderingStatusFailed)
+        {
+            // AVSampleBufferDisplayLayer会在遇到后台事件等一些打断事件时失效，即如果视频正在渲染，这个时候摁home键或者锁屏键，再回到视频的渲染界面，就会显示渲染失败，错误码就是-11847。
+            if (-11847 == layer.error.code)
+            {
+                [self rebuildSampleBufferDisplayLayer];
+            }
+        }
+    }
+}
+
+- (void)rebuildSampleBufferDisplayLayer
+{
+    
 }
 
 @end
